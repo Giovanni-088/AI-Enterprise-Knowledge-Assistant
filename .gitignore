@@ -1,0 +1,21 @@
+# Environment
+.env
+
+# Docker
+*.log
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Temporary
+tmp/
