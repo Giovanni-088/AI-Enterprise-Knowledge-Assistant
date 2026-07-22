@@ -45,6 +45,23 @@ Groq (Llama)
 
 Slack Response
 
+## Knowledge Retrieval Pipeline
+
+The assistant does not send every document directly to the AI model.
+
+The workflow performs:
+
+1. User question analysis
+2. Keyword extraction
+3. Document search
+4. Metadata validation
+5. File filtering
+6. Document ranking
+7. Context generation
+8. AI response generation
+
+
+This reduces token usage and prevents hallucinations.
 
 ---
 
