@@ -176,6 +176,28 @@ Completed:
 - Vector Database
 - Semantic Search
 
+```md
+## Knowledge Retrieval
+
+The assistant retrieves information from internal company documentation stored in Google Drive.
+
+Current capabilities:
+
+- Slack question processing
+- Query normalization
+- Technical keyword expansion
+- Google Drive document search
+- File validation
+- Document ranking
+
+Supported formats:
+
+- Markdown
+- PDF
+- DOCX
+- TXT
+
+The retrieval engine currently uses keyword-based ranking and is designed to evolve into a full RAG architecture with embeddings and vector search.
 ---
 
 # License
