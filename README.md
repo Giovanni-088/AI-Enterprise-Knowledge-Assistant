@@ -199,6 +199,18 @@ Supported formats:
 
 The retrieval engine currently uses keyword-based ranking and is designed to evolve into a full RAG architecture with embeddings and vector search.
 ---
+## Current Features
+
+- Slack Event API integration
+- Secure Slack webhook verification
+- AI-ready question normalization
+- Technical keyword extraction
+- Synonym expansion
+- Google Drive Enterprise Knowledge Base
+- Intelligent document ranking
+- Multi-department document search
+- Duplicate removal
+- Flexible document type filtering
 
 # License
 
