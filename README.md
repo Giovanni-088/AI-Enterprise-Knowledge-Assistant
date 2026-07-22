@@ -107,28 +107,46 @@ Slack Response
 ---
 # Current Progress
 
-## ✅ Phase 00
+# Project Progress
 
-- Project structure
-- Documentation
-- Docker environment
-- GitHub repository
+## Phase 00 — Project Initialization
 
-## Phase 01
+Completed:
+
+- GitHub repository created
+- Project structure defined
+- Documentation initialized
+- Environment configuration created
+
+
+## Phase 01 — Slack Integration
+
+Completed:
 
 - Slack App created
-- OAuth configured
-- Bot User created
-- Event Subscriptions configured
-- Secure webhook integration with n8n
-- Cloudflare Tunnel connectivity
+- Bot User configured
+- OAuth permissions configured
+- Event Subscriptions enabled
+- Slack webhook verification completed
+- n8n integration through Cloudflare Tunnel
 
-## Phase 02 (In Progress)
 
-- Google Drive credentials configured
+## Phase 02 — Knowledge Source & Query Processing 
+
+Completed:
+
+- Google Drive connected as knowledge source
 - Enterprise Knowledge Base created
 - Internal documentation uploaded
-- Retrieval pipeline under development
+- Slack event extraction implemented
+- Query Normalizer implemented
+- Text normalization
+- Accent removal
+- Stop word filtering
+- Keyword extraction
+- Synonym expansion
+- Levenshtein-based typo correction
+- Query validation through Slack tests
 
 # Future Improvements
 

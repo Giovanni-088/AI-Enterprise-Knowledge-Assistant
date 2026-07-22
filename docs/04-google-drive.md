@@ -1,79 +1,84 @@
-# Google Drive Integration
+# Google Drive Knowledge Source
 
 ## Objective
 
-Integrate Google Drive as the primary enterprise knowledge source for the AI assistant.
+Integrate Google Drive as the centralized repository for internal enterprise documentation.
+
+The assistant uses Google Drive as a knowledge source before generating responses with the AI model.
 
 ---
 
 # Knowledge Base Structure
 
-Enterprise Knowledge Base
+The documentation is organized by business area:
 
-├── HR
 
-├── IT
+Enterprise Knowledge Base/
 
-├── Operations
+├── HR/
 
-└── Development
+├── IT/
 
-Each department stores documentation that can be queried by employees through Slack.
+├── Operations/
+
+└── Development/
+
+
+This structure allows future filtering and categorization.
 
 ---
 
-# Supported Formats
+# Supported Documents
+
+Current supported formats:
 
 - PDF
 - DOCX
 - Markdown
-- TXT
-
----
-
-# Workflow
-
-Slack Question
-
-↓
-
-Keyword Extraction
-
-↓
-
-Google Drive Search
-
-↓
-
-Download Documents
-
-↓
-
-Extract Text
-
-↓
-
-Send Context to AI
 
 ---
 
 # Authentication
 
-Google Drive is accessed using OAuth2 credentials configured in n8n.
+Google Drive access is configured through n8n OAuth2 credentials.
 
-The workflow only requires read permissions.
+Permissions:
 
----
+- Read files
+- Access knowledge base documents
 
-# Design Goals
-
-- Reduce token usage
-- Download only relevant documents
-- Keep documentation centralized
-- Support future semantic search
+The assistant does not modify documents.
 
 ---
 
-# Current Status
+# Retrieval Strategy
 
-In Progress
+The system does not send all company documentation to the AI model.
+
+Instead:
+
+1. Receive user question.
+2. Normalize query.
+3. Generate keywords.
+4. Search relevant documentation.
+5. Retrieve only necessary context.
+
+---
+
+# Benefits
+
+- Reduced token consumption
+- Faster responses
+- Less irrelevant context
+- Better scalability
+
+---
+
+# Future Improvements
+
+Possible production improvements:
+
+- Semantic search
+- Document embeddings
+- Vector database
+- Metadata filtering
