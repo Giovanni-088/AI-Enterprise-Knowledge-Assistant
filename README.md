@@ -1,6 +1,6 @@
 # AI Enterprise Knowledge Assistant
 
-Enterprise AI assistant that answers employee questions from Slack using official company documentation stored in Google Drive and GitHub.
+Enterprise AI assistant that answers employee questions from Slack using official company documentation stored in Google Drive and subsequently GitHub.
 
 The project uses automation workflows, document processing and Large Language Models to provide reliable answers based only on internal knowledge sources.
 
