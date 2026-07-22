@@ -45,6 +45,9 @@ Tasks:
 - Create webhook connection
 - Receive user messages through n8n
 
+Status:
+
+Completed
 
 ---
 
