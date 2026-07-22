@@ -27,7 +27,6 @@ Question Processing
 Documentation Sources
 
 ├── Google Drive
-└── GitHub Docs
 
 ↓
 
@@ -102,7 +101,7 @@ Examples:
 
 ---
 
-## GitHub Documentation
+## GitHub Documentation (future improvment)
 
 Purpose:
 

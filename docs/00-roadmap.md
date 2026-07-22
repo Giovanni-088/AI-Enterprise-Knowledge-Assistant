@@ -51,7 +51,7 @@ Completed
 
 ---
 
-# Phase 02 — Google Drive Retrieval
+# Phase 03 — Document Retrieval & Processing
 
 ## Objective
 
@@ -64,25 +64,9 @@ Tasks:
 - Retrieve files
 - Convert documents into text
 
-
 ---
 
-# Phase 03 — GitHub Documentation Retrieval
-
-## Objective
-
-Retrieve technical documentation stored in GitHub.
-
-Tasks:
-
-- Connect GitHub API
-- Read Markdown files
-- Process README and docs folders
-
-
----
-
-# Phase 04 — Document Search
+# Phase 03 — Document Search
 
 ## Objective
 
@@ -98,7 +82,7 @@ Tasks:
 
 ---
 
-# Phase 05 — AI Response Generation
+# Phase 04 — AI Response Generation
 
 ## Objective
 
@@ -113,7 +97,7 @@ Requirements:
 
 ---
 
-# Phase 06 — Slack Response
+# Phase 05 — Slack Response
 
 ## Objective
 
@@ -128,7 +112,7 @@ Features:
 
 ---
 
-# Phase 07 — Conversation Logging
+# Phase 06 — Conversation Logging
 
 ## Objective
 
@@ -145,7 +129,7 @@ Store:
 
 ---
 
-# Phase 08 — Error Handling & Monitoring
+# Phase 07 — Error Handling & Monitoring
 
 ## Objective
 
