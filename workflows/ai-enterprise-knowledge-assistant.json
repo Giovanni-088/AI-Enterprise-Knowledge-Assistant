@@ -1,0 +1,688 @@
+{
+  "name": "AI Enterprise Knowledge Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack/events",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -592,
+        0
+      ],
+      "id": "29dd5949-cd99-4d0c-b9d2-e18bf90f99f3",
+      "name": "Webhook",
+      "webhookId": "8216491c-b530-44c7-86e7-8a7ea7b3d611"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0495fd5a-7acc-4f79-aa5e-d14baf634380",
+              "name": "question",
+              "value": "={{$json.body.event.text}}",
+              "type": "string"
+            },
+            {
+              "id": "c5c06cf9-06a9-464f-9b5b-e1d25c9154fd",
+              "name": "channel",
+              "value": "={{$json.body.event.channel}}",
+              "type": "string"
+            },
+            {
+              "id": "4af6764d-4aab-4aaf-97b4-6c6533dd67f4",
+              "name": "user",
+              "value": "={{$json.body.event.user}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -320,
+        192
+      ],
+      "id": "a80f9bd6-5001-40cf-badf-abeca5e80e5f",
+      "name": "Extract Event"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": true\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -304,
+        -192
+      ],
+      "id": "69eabd1b-1b26-453b-bf63-96f514fa3040",
+      "name": "Respond Challenge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// Procesamiento robusto de mensajes de Slack\n// ==========================================\n\nfunction levenshtein(a, b) {\n  const m = a.length, n = b.length;\n  if (m === 0) return n;\n  if (n === 0) return m;\n  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));\n  for (let i = 0; i <= m; i++) dp[i][0] = i;\n  for (let j = 0; j <= n; j++) dp[0][j] = j;\n  for (let i = 1; i <= m; i++) {\n    for (let j = 1; j <= n; j++) {\n      const cost = a[i - 1] === b[j - 1] ? 0 : 1;\n      dp[i][j] = Math.min(\n        dp[i - 1][j] + 1,\n        dp[i][j - 1] + 1,\n        dp[i - 1][j - 1] + cost\n      );\n    }\n  }\n  return dp[m][n];\n}\n\ntry {\n  const event = ($json && $json.body && $json.body.event) || {};\n  const rawText = typeof event.text === \"string\" ? event.text : \"\";\n\n  const MAX_LENGTH = 2000;\n  let message = rawText.slice(0, MAX_LENGTH);\n\n  // Limpieza de formato Slack (menciones, canales, links, markdown)\n  message = message\n    .replace(/<@[A-Z0-9]+>/gi, \" \")\n    .replace(/<#[A-Z0-9]+\\|?([^>]*)>/gi, \" $1 \")\n    .replace(/<!(here|channel|everyone)>/gi, \" \")\n    .replace(/<(https?:\\/\\/[^|>]+)\\|([^>]+)>/gi, \" $2 \")\n    .replace(/<(https?:\\/\\/[^>]+)>/gi, \" \")\n    .replace(/[*_~`]/g, \" \");\n\n  // Normalización básica\n  message = message\n    .toLowerCase()\n    .normalize(\"NFD\")\n    .replace(/[\\u0300-\\u036f]/g, \"\")\n    .replace(/[^\\p{L}\\p{N}\\s]/gu, \" \")\n    .replace(/\\s+/g, \" \")\n    .trim();\n\n  // Correcciones (Map evita el bug de keys duplicadas del objeto original)\n  const corrections = new Map([\n    [\"vacasiones\", \"vacaciones\"],\n    [\"vacacion\", \"vacaciones\"],\n    [\"vacacioneses\", \"vacaciones\"],\n    [\"dockerr\", \"docker\"],\n    [\"dokcer\", \"docker\"],\n    [\"dock\", \"docker\"],\n    [\"workflows\", \"workflow\"],\n    [\"work flow\", \"workflow\"],\n    [\"git hub\", \"github\"],\n    [\"vpnn\", \"vpn\"],\n    [\"desplegar\", \"deployment\"],\n    [\"deploy\", \"deployment\"],\n    [\"despliegue\", \"deployment\"]\n  ]);\n\n  // Frases largas primero, para que no las pise una corrección más corta\n  const sortedCorrections = [...corrections.entries()].sort(\n    (a, b) => b[0].length - a[0].length\n  );\n  for (const [wrong, right] of sortedCorrections) {\n    const escaped = wrong.replace(/[.*+?^${}()|[\\]\\\\]/g, \"\\\\$&\");\n    message = message.replace(new RegExp(`\\\\b${escaped}\\\\b`, \"gi\"), right);\n  }\n\n  const stopWords = new Set([\n    \"como\", \"quiero\", \"puedo\", \"hacer\", \"para\", \"donde\", \"cuando\",\n    \"que\", \"una\", \"uno\", \"los\", \"las\", \"del\", \"con\", \"por\",\n    \"ayuda\", \"favor\", \"el\", \"la\", \"de\", \"en\", \"y\", \"o\", \"un\",\n    \"necesito\", \"podrias\", \"podrías\", \"tengo\", \"hola\", \"buenas\"\n  ]);\n\n  const canonicalTerms = [\"vacaciones\", \"docker\", \"vpn\", \"deployment\", \"github\", \"workflow\"];\n\n  // Fuzzy matching: atrapa typos que no están en el diccionario de correcciones\n  function fuzzyCorrect(word) {\n    if (word.length < 4) return word;\n    for (const term of canonicalTerms) {\n      const maxDist = term.length <= 5 ? 1 : 2;\n      if (levenshtein(word, term) <= maxDist) return term;\n    }\n    return word;\n  }\n\n  let keywords = message\n    .split(/\\s+/)\n    .filter(Boolean)\n    .filter(word => word.length > 2)\n    .filter(word => !stopWords.has(word))\n    .map(fuzzyCorrect);\n\n  const synonyms = {\n\n  // Docker / Infraestructura\n  docker: [\n    \"docker\",\n    \"compose\",\n    \"container\",\n    \"contenedor\"\n  ],\n\n  contenedor: [\n    \"docker\",\n    \"container\",\n    \"compose\"\n  ],\n\n  compose: [\n    \"docker\",\n    \"compose\"\n  ],\n\n\n  // Workflows / Automatización\n  workflow: [\n    \"workflow\",\n    \"n8n\",\n    \"automation\"\n  ],\n\n  workflows: [\n    \"workflow\",\n    \"n8n\",\n    \"automation\"\n  ],\n\n  flujo: [\n    \"workflow\",\n    \"automation\"\n  ],\n\n  automatizacion: [\n    \"workflow\",\n    \"n8n\",\n    \"automation\"\n  ],\n\n\n  // Deployment\n  desplegar: [\n    \"deployment\",\n    \"deploy\",\n    \"release\"\n  ],\n\n  desplegamos: [\n    \"deployment\",\n    \"deploy\",\n    \"release\"\n  ],\n\n  despliegue: [\n    \"deployment\",\n    \"deploy\"\n  ],\n\n  publicar: [\n    \"deployment\",\n    \"release\"\n  ],\n\n\n  // VPN\n  vpn: [\n    \"vpn\",\n    \"remote\",\n    \"access\"\n  ],\n\n\n  // HR\n  vacaciones: [\n    \"vacaciones\",\n    \"vacation\",\n    \"leave\",\n    \"hr\"\n  ],\n\n  vacacion: [\n    \"vacaciones\",\n    \"vacation\",\n    \"leave\",\n    \"hr\"\n  ],\n\n  vacasiones: [\n    \"vacaciones\",\n    \"vacation\",\n    \"leave\",\n    \"hr\"\n  ]\n};\n\n  const expandedKeywords = new Set(keywords);\n  keywords.forEach(keyword => {\n    if (synonyms[keyword]) synonyms[keyword].forEach(s => expandedKeywords.add(s));\n  });\n\n  return [\n    {\n      json: {\n        original_question: rawText,\n        normalized_question: message,\n        keywords: [...expandedKeywords],\n        channel: event.channel || null,\n        user: event.user || null,\n        has_content: keywords.length > 0,\n        processed_at: new Date().toISOString()\n      }\n    }\n  ];\n} catch (error) {\n  return [\n    {\n      json: {\n        original_question: ($json?.body?.event?.text) || \"\",\n        normalized_question: \"\",\n        keywords: [],\n        channel: ($json?.body?.event?.channel) || null,\n        user: ($json?.body?.event?.user) || null,\n        has_content: false,\n        error: error.message,\n        processed_at: new Date().toISOString()\n      }\n    }\n  ];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        16
+      ],
+      "id": "d083a3fd-71dd-4301-9554-242614a04a2f",
+      "name": "Query Normalizer"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "={{$json.search_term}}",
+        "limit": 10,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        288,
+        192
+      ],
+      "id": "0adf6071-45ed-40d8-bf83-25d6accc5419",
+      "name": "Search",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "VmPUATotCceDzOeE",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1456,
+        48
+      ],
+      "id": "c1730bfa-4a74-4fbd-b75b-2b5de5182e14",
+      "name": "Download Document",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "VmPUATotCceDzOeE",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const keywords = $json.keywords;\n\nreturn keywords.map(keyword => ({\n  json: {\n    search_term: keyword\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        48
+      ],
+      "id": "574218d0-d00c-4882-ad28-f64f27c51350",
+      "name": "Split Keywords"
+    },
+    {
+      "parameters": {
+        "jsCode": "const keywords = $json.keywords || [];\n\nconst synonymMap = {\n\n  docker: [\n    \"docker\",\n    \"container\",\n    \"contenedor\",\n    \"compose\",\n    \"imagen\",\n    \"servicio\"\n  ],\n\n  restart: [\n    \"restart\",\n    \"reiniciar\",\n    \"reinicio\",\n    \"levantar\",\n    \"arrancar\",\n    \"recrear\"\n  ],\n\n  deployment: [\n  \"deployment\",\n  \"deploy\",\n  \"release\",\n  \"docker\",\n  \"compose\"\n],\n\n workflow: [\n  \"workflow\",\n  \"flujo\",\n  \"automatizacion\",\n  \"n8n\",\n  \"deployment\",\n  \"docker\"\n],\n\n  vacation: [\n    \"vacaciones\",\n    \"vacation\",\n    \"permiso\",\n    \"dias\",\n    \"ausencia\"\n  ],\n\n  vpn: [\n    \"vpn\",\n    \"conexion\",\n    \"acceso\",\n    \"red\"\n  ],\n\n  api: [\n    \"api\",\n    \"endpoint\",\n    \"servicio\",\n    \"integracion\"\n  ]\n\n};\n\n\nlet expanded = [...keywords];\n\n\nkeywords.forEach(word => {\n\n  for (const concept in synonymMap) {\n\n    if (synonymMap[concept].includes(word)) {\n\n      expanded.push(...synonymMap[concept]);\n\n    }\n\n  }\n\n});\n\n\nreturn [\n  {\n    json:{\n      keywords:[...new Set(expanded)]\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        192
+      ],
+      "id": "35c27684-f8e8-42dc-8577-1cd0e84d0af2",
+      "name": "Technical Terms Filter"
+    },
+    {
+      "parameters": {
+        "jsCode": "const keywords = $json.keywords || [];\n\n\nreturn items.map(item => {\n\n  const documentText = (\n    item.json.name +\n    \" \" +\n    (item.json.mimeType || \"\")\n  ).toLowerCase();\n\n\n  let score = 0;\n\n\n  keywords.forEach(keyword => {\n\n    const matches = (\n      documentText.match(\n        new RegExp(keyword, \"g\")\n      ) || []\n    ).length;\n\n\n    score += matches;\n\n  });\n\n\n  // Prioridad a documentación útil\n  const mime = item.json.mimeType || \"\";\n\n\n  if (\n    mime === \"text/markdown\" ||\n    mime.includes(\"pdf\") ||\n    mime.includes(\"wordprocessingml\")\n  ) {\n    score += 2;\n  }\n\n\n  return {\n    json:{\n      ...item.json,\n      score\n    }\n  };\n\n\n})\n.sort(\n(a,b)=>b.json.score-a.json.score\n);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        192
+      ],
+      "id": "cfb4d4a3-5e13-4e6c-a20b-94aecc2433ac",
+      "name": "Documents Ranking"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/drive/v3/files/{{$json.id}}?fields=id,name,mimeType",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        512,
+        48
+      ],
+      "id": "fdef2ce0-61e2-4e93-97d6-5d9a449f2a39",
+      "name": "Document Metadata Validator",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "VmPUATotCceDzOeE",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => {\n\n  const mime = item.json.mimeType;\n\n  const supportedTypes = [\n    \"text/markdown\",\n    \"text/plain\",\n    \"application/pdf\",\n    \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\n    \"application/vnd.google-apps.document\"\n  ];\n\n  return supportedTypes.includes(mime);\n\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        192
+      ],
+      "id": "0186c7e5-b685-4491-89b5-4cc0d35ddf12",
+      "name": "File Type Filter"
+    },
+    {
+      "parameters": {
+        "jsCode": "const seen = new Set();\n\nreturn items.filter(item => {\n\n  const id = item.json.id;\n\n  if (seen.has(id)) {\n    return false;\n  }\n\n  seen.add(id);\n  return true;\n\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        48
+      ],
+      "id": "eadaaeb2-8343-4332-aa7f-a65f0a1e26d9",
+      "name": "Document Deduplicator"
+    },
+    {
+      "parameters": {
+        "jsCode": "const MAX_DOCUMENTS = 5;\nconst MAX_CHARS_PER_DOCUMENT = 8000;\n\nconst documents = [];\nconst sources = [];\n\nconst rankingItem = $items(\"Documents Ranking\")[sources.length];\n\nfor (const item of items.slice(0, MAX_DOCUMENTS)) {\n\n  const text =\n    item.json.data ||\n    item.json.text ||\n    item.json.content ||\n    \"\";\n\n  if (!text.trim()) continue;\n\nconst title =\n    rankingItem?.json?.name ||\n    item.json.name ||\n    item.json.fileName ||\n    item.json.filename ||\n    `Documento ${sources.length + 1}`;\n\n  sources.push(title);\n\ndocuments.push(\n`### DOCUMENTO\nNombre: ${title}\n\nContenido:\n${text.substring(0, MAX_CHARS_PER_DOCUMENT)}`\n);\n\n}\n\nreturn [{\n  json: {\n    question: $items(\"Extract Event\")[0].json.question,\n    context: documents.join(\"\\n\\n----------------------------------------\\n\\n\"),\n    sources,\n    documentCount: sources.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        48
+      ],
+      "id": "8a7b83c9-16b0-4fbd-a193-80ee3fea4233",
+      "name": "Context Builder (Parsing)"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Pregunta:\n\n{{ $json.question }}\n\nDocumentación:\n\n{{ $json.context }}\n\nFuentes:\n\n{{ $json.sources }}",
+        "options": {
+          "systemMessage": "=Eres el asistente interno de conocimiento de una empresa.\n\nTu función es responder preguntas utilizando EXCLUSIVAMENTE la documentación proporcionada.\n\nReglas obligatorias:\n\n- Nunca inventes información.\n- Nunca uses conocimiento externo.\n- Nunca copies documentos completos.\n- Resume únicamente la información necesaria.\n- Si varios documentos contienen información útil, combina la respuesta.\n- Ignora documentos que no aporten información.\n- No menciones el contexto recibido.\n- No escribas encabezados como DOCUMENT o CONTEXTO.\n- Si existen comandos o procedimientos, respétalos exactamente.\n- Responde siempre en español.\n- Usa Markdown simple.\n- Nunca muestres el nombre del documento al inicio de la respuesta.\n- Nunca copies encabezados como \"DOCUMENT:\", \"Document:\", \"==================\" o similares.\n- Empieza directamente respondiendo la pregunta.\n- Los nombres de los archivos solo deben aparecer en la sección \"Fuentes\".\n\nFormato de salida:\n\n<Respuesta>\n\n### Fuentes\n- archivo1\n- archivo2\n\nNo escribas absolutamente nada antes de la respuesta.\n\nCuando respondas:\n\n1. Si la documentación responde completamente la pregunta:\n- Responde normalmente.\n\n2. Si encontraste documentos relacionados, pero no contienen la información solicitada:\n- Indica de forma natural que existe documentación sobre el tema, pero que no responde la pregunta específica.\n\nEjemplo:\n\n\"Encontré documentación relacionada con VPN, pero no explica el procedimiento para solicitar acceso.\"\n\n3. Si la documentación es parcial:\n- Responde únicamente con la información disponible.\n- Aclara qué información falta.\n\nEjemplo:\n\n\"La documentación indica que el acceso requiere autorización del área de TI, pero no especifica el procedimiento para solicitarla.\"\n\n4. Solo cuando ningún documento relacionado haya sido encontrado responde:\n\n\"No encontré documentación relacionada con esa consulta.\"\n\nAl finalizar agrega únicamente:\n\n### Fuentes\n\n- nombre_documento\n\no\n\n{{ $json.sources }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2640,
+        48
+      ],
+      "id": "fa40da80-c456-4987-8fb6-ae787684ae8a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "maxTokensToSample": 1000,
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2640,
+        240
+      ],
+      "id": "10b5c558-7413-4ef0-bb9d-ebd6dd06db00",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "dAZrmkw6DG3mOTRc",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#ai-assistant-test",
+          "mode": "name"
+        },
+        "text": "={{ $json.output }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        3008,
+        48
+      ],
+      "id": "01c9e92c-93c4-4bd5-868b-ad82f8dd785e",
+      "name": "Send a message",
+      "webhookId": "a31449f3-5261-4a83-8a1c-cd50499597b8",
+      "credentials": {
+        "slackApi": {
+          "id": "sDKJR89cEBXr7UUC",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        2048,
+        48
+      ],
+      "id": "81cbb8db-2d0e-4f49-a2aa-372e83a51ed9",
+      "name": "Extract From PDF File"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {
+          "keepSource": "json"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        2048,
+        272
+      ],
+      "id": "ee4e4280-66b5-4fe4-adce-d56e245ca1ce",
+      "name": "Extract From MD File"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": "docx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "123a2b22-43e4-4519-ab56-81b16d63cdf8"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DOCX"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "da717981-5c64-409c-8bed-17045a71dbab",
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "5fe99576-37d3-4cd2-a7d0-80b5eda43d59",
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": "md",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "MD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1744,
+        32
+      ],
+      "id": "5d0db9ad-ddd5-4158-bf0d-4aed0b3a4465",
+      "name": "Document Type"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://docx-parser:8000/extract",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2032,
+        -176
+      ],
+      "id": "d4cec160-0602-4d4e-a9f8-b18dbef30972",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond Challenge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Event": {
+      "main": [
+        [
+          {
+            "node": "Query Normalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Normalizer": {
+      "main": [
+        [
+          {
+            "node": "Technical Terms Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search": {
+      "main": [
+        [
+          {
+            "node": "Document Metadata Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Document": {
+      "main": [
+        [
+          {
+            "node": "Document Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Keywords": {
+      "main": [
+        [
+          {
+            "node": "Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Technical Terms Filter": {
+      "main": [
+        [
+          {
+            "node": "Split Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Documents Ranking": {
+      "main": [
+        [
+          {
+            "node": "Download Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Metadata Validator": {
+      "main": [
+        [
+          {
+            "node": "File Type Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Type Filter": {
+      "main": [
+        [
+          {
+            "node": "Document Deduplicator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Deduplicator": {
+      "main": [
+        [
+          {
+            "node": "Documents Ranking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Builder (Parsing)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract From PDF File": {
+      "main": [
+        [
+          {
+            "node": "Context Builder (Parsing)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract From MD File": {
+      "main": [
+        [
+          {
+            "node": "Context Builder (Parsing)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Type": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract From PDF File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract From MD File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Context Builder (Parsing)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f7e818d4-d2a2-41a7-aa94-281398c1c52c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cdc94c11d11296766bda8a74a56501c92d54e18a7c163a84b69eafac0d3a3a70"
+  },
+  "nodeGroups": [],
+  "id": "cevunA1WJS43wQcB",
+  "tags": []
+}
