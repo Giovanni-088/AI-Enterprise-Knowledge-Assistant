@@ -70,3 +70,21 @@ Deployment services will be added in future phases.
 
 
 ---
+
+## Deploy DOCX Parser
+
+Requirements
+
+- Python 3.12
+- FastAPI
+- python-docx
+- Uvicorn
+
+Run with Docker Compose.
+
+The service listens on port 8000 internally and should not be exposed publicly.
+
+n8n communicates with the service through the Docker network.
+
+Both, n8n and DOCX Parser are on the same docker network (docker network create ai-network)
+---

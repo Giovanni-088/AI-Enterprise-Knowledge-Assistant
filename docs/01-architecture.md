@@ -32,6 +32,31 @@ Documentation Sources
 
 Document Processing
 
+Google Drive
+      │
+      ▼
+Download File
+      │
+      ▼
+Detect File Type
+      │
+      ├──────── PDF
+      │
+      ├──────── TXT
+      │
+      ├──────── XLSX
+      │
+      └──────── DOCX
+                   │
+                   ▼
+         docx-parser (FastAPI)
+                   │
+                   ▼
+          Normalized Text
+                   │
+                   ▼
+              AI / RAG
+
 ↓
 
 Context Generation
@@ -85,6 +110,39 @@ Responsibilities:
 
 ---
 
+### DOCX Parser Service
+
+A dedicated FastAPI microservice is responsible for extracting text from Microsoft Word (.docx) documents.
+
+Responsibilities:
+
+- Receive binary DOCX files.
+- Extract paragraphs using python-docx.
+- Return normalized text in JSON.
+- Communicate only through the internal Docker network.
+
+---
+
+## Docker Architecture
+
+Cloudflare
+     │
+     ▼
+   n8n
+     │
+Docker Internal Network
+     │
+     ▼
+docx-parser
+     │
+     ▼
+Extracted Text
+     │
+     ▼
+AI Processing
+
+---
+
 ## Google Drive
 
 Purpose:
@@ -101,7 +159,7 @@ Examples:
 
 ---
 
-## GitHub Documentation (future improvment)
+## GitHub Documentation (future improvement)
 
 Purpose:
 

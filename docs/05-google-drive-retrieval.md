@@ -246,3 +246,17 @@ Future versions may include
 - Department-independent
 - Easy to maintain
 - No Vector Database required
+
+---
+
+## Supported File Types
+
+Current supported document types include:
+
+- PDF
+- TXT
+- CSV
+- XLSX
+- DOCX
+
+---

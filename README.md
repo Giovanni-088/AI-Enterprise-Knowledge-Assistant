@@ -1,21 +1,20 @@
 # AI Enterprise Knowledge Assistant
 
-Enterprise AI assistant that answers employee questions from Slack using official company documentation stored in Google Drive and subsequently GitHub.
+Enterprise AI assistant that answers employee questions directly from Slack using official company documentation stored in Google Drive.
 
-The project uses automation workflows, document processing and Large Language Models to provide reliable answers based only on internal knowledge sources.
+The system combines workflow automation, document retrieval, AI-powered reasoning and document parsing to provide accurate responses grounded on internal company knowledge.
 
 ---
 
 # Objective
 
-Build an AI-powered enterprise knowledge assistant that allows employees to query internal documentation directly from Slack.
+Build an enterprise knowledge assistant that enables employees to ask questions in Slack and receive answers generated exclusively from approved company documentation.
 
-The assistant retrieves information from approved company sources, processes the documents, sends relevant context to an LLM and returns a grounded response with references.
+The assistant retrieves relevant documents, extracts their content, generates contextual prompts and produces grounded AI responses.
 
 ---
 
 # Architecture
-
 
 Employee
 
@@ -29,13 +28,21 @@ n8n
 
 ↓
 
-Document Retrieval
-
-├── Google Drive
+Query Processing
 
 ↓
 
-Document Processing
+Google Drive Retrieval
+
+↓
+
+Document Ranking
+
+↓
+
+Document Parser
+
+(PDF / DOCX / TXT)
 
 ↓
 
@@ -45,23 +52,69 @@ Groq (Llama)
 
 Slack Response
 
-## Knowledge Retrieval Pipeline
+---
 
-The assistant does not send every document directly to the AI model.
+# Knowledge Retrieval Pipeline
 
-The workflow performs:
+Instead of sending every document directly to the language model, the workflow performs several preprocessing steps.
 
-1. User question analysis
-2. Keyword extraction
-3. Document search
-4. Metadata validation
-5. File filtering
-6. Document ranking
-7. Context generation
-8. AI response generation
+Current pipeline:
 
+- Slack event reception
+- Question normalization
+- Keyword extraction
+- Synonym expansion
+- Typo correction
+- Google Drive search
+- Metadata validation
+- Document filtering
+- Document ranking
+- Document parsing
+- Context generation
+- AI answer generation
 
-This reduces token usage and prevents hallucinations.
+This approach reduces token usage while improving response accuracy.
+
+---
+
+# Document Processing
+
+The project supports multiple document formats.
+
+Current supported formats:
+
+- PDF
+- DOCX
+- TXT
+- Markdown
+- CSV
+- XLSX
+
+To support Microsoft Word documents, a dedicated parsing microservice was developed.
+
+Architecture:
+
+n8n
+
+↓
+
+HTTP Request
+
+↓
+
+docx-parser
+
+(FastAPI)
+
+↓
+
+Extracted Text
+
+↓
+
+AI Pipeline
+
+The parser receives DOCX files through multipart/form-data, extracts the document text using **python-docx**, and returns normalized JSON ready for AI processing.
 
 ---
 
@@ -74,7 +127,14 @@ This reduces token usage and prevents hallucinations.
 ## Artificial Intelligence
 
 - Groq API
-- Llama models
+- Llama Models
+
+## Backend
+
+- Python
+- FastAPI
+- Uvicorn
+- python-docx
 
 ## Integrations
 
@@ -86,131 +146,97 @@ This reduces token usage and prevents hallucinations.
 - Ubuntu Server
 - Docker
 - Docker Compose
+- Docker Internal Network
 
 ## Documentation
 
 - Markdown
-- PDF
-- DOCX
 
 ---
 
 # Features
 
-- Slack-based AI assistant
-- Internal documentation search
-- Google Drive document retrieval
-- AI-generated answers
-- Source references
-- Protection against hallucinations
+- Slack AI Assistant
+- Enterprise Knowledge Base
+- Google Drive Retrieval
+- Intelligent Document Ranking
+- AI-generated Answers
+- Source-grounded Responses
+- Query Normalization
+- Synonym Expansion
+- Typo Correction
+- DOCX Parsing Service
+- Modular Architecture
+- Docker-based Deployment
 
 ---
 
 # Project Roadmap
 
-- [x] Phase 00 - Project Initialization
-- [x] Phase 01 - Slack Integration
-- [x] Phase 02 - Google Drive Retrieval
-- [ ] Phase 03 - Document Search
-- [ ] Phase 04 - AI Response Generation
-- [ ] Phase 05 - Slack Response
-- [ ] Phase 06 - Conversation Logging
-- [ ] Phase 07 - Error Handling & Monitoring
+- ✅ Phase 00 — Project Initialization
+- ✅ Phase 01 — Slack Integration
+- ✅ Phase 02 — Google Drive Retrieval
+- ✅ Phase 03 — Query Processing
+- ✅ Phase 04 — Document Parsing
+- ✅ Phase 05 — AI Answer Generation
+- ✅ Phase 06 — Slack Response
+- ✅ Phase 07 — Monitoring & Future Improvements
 
 ---
-# Current Progress
 
-# Project Progress
+# Current Architecture
 
-## Phase 00 — Project Initialization
+Internet
 
-Completed:
+↓
 
-- GitHub repository created
-- Project structure defined
-- Documentation initialized
-- Environment configuration created
+Cloudflare Tunnel
 
+↓
 
-## Phase 01 — Slack Integration
+n8n
 
-Completed:
+↓
 
-- Slack App created
-- Bot User configured
-- OAuth permissions configured
-- Event Subscriptions enabled
-- Slack webhook verification completed
-- n8n integration through Cloudflare Tunnel
+Docker Internal Network
 
+↓
 
-## Phase 02 — Knowledge Source & Query Processing 
+Google Drive
 
-Completed:
+↓
 
-- Google Drive connected as knowledge source
-- Enterprise Knowledge Base created
-- Internal documentation uploaded
-- Slack event extraction implemented
-- Query Normalizer implemented
-- Text normalization
-- Accent removal
-- Stop word filtering
-- Keyword extraction
-- Synonym expansion
-- Levenshtein-based typo correction
-- Query validation through Slack tests
+docx-parser
+
+↓
+
+Groq (Llama)
+
+↓
+
+Slack Response
+
+---
 
 # Future Improvements
 
-- Vector database integration
+- Universal Document Parser
+- PDF Extraction Service
+- PPTX Support
+- OCR Integration
 - Embeddings
-- Semantic search
-- RAG architecture
-- User permissions
-- Document versioning
-- GitHub Documentation Retrieval
+- Vector Database
+- Semantic Search
+- Full RAG Architecture
 - Confluence Integration
 - SharePoint Integration
 - Notion Integration
-- Vector Database
-- Semantic Search
+- GitHub Knowledge Retrieval
+- User Permissions
+- Document Versioning
+- Monitoring with Prometheus & Grafana
 
-```md
-## Knowledge Retrieval
-
-The assistant retrieves information from internal company documentation stored in Google Drive.
-
-Current capabilities:
-
-- Slack question processing
-- Query normalization
-- Technical keyword expansion
-- Google Drive document search
-- File validation
-- Document ranking
-
-Supported formats:
-
-- Markdown
-- PDF
-- DOCX
-- TXT
-
-The retrieval engine currently uses keyword-based ranking and is designed to evolve into a full RAG architecture with embeddings and vector search.
 ---
-## Current Features
-
-- Slack Event API integration
-- Secure Slack webhook verification
-- AI-ready question normalization
-- Technical keyword extraction
-- Synonym expansion
-- Google Drive Enterprise Knowledge Base
-- Intelligent document ranking
-- Multi-department document search
-- Duplicate removal
-- Flexible document type filtering
 
 # License
 

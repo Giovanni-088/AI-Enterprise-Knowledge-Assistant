@@ -51,7 +51,7 @@ Completed
 
 ---
 
-# Phase 03 — Document Retrieval & Processing
+# Phase 02 — Document Retrieval & Processing
 
 ## Objective
 
@@ -65,6 +65,20 @@ Tasks:
 - Convert documents into text
 
 ---
+## Phase 02.1 — DOCX Support
+
+### Objective
+
+Extend the ingestion pipeline to support Microsoft Word (.docx) documents.
+
+### Tasks
+
+- Create a dedicated document extraction microservice.
+- Integrate FastAPI with python-docx.
+- Connect n8n using HTTP Request.
+- Process binary files using multipart/form-data.
+- Return normalized text for AI processing.
+- Support internal Docker networking.
 
 # Phase 03 — Document Search
 

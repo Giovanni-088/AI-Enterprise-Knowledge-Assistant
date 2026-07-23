@@ -47,6 +47,17 @@ Synonym Expansion
 
 Search Query
 
+↓
+
+Download File
+
+↓
+
+Detect File Type
+
+↓
+
+Route to Parser
 
 ---
 
@@ -133,7 +144,39 @@ Output:
    "hr"
  ]
 }
-Future Improvements
+
+---
+
+### DOCX Processing
+
+If the retrieved document is a Microsoft Word file, n8n sends the binary file to the document parser service.
+
+The parser extracts the text and returns normalized content for the AI Agent.
+
+Google Drive
+
+↓
+
+Binary File
+
+↓
+
+HTTP Request
+
+↓
+
+docx-parser
+
+↓
+
+Extracted Text
+
+↓
+
+AI Agent
+
+---
+## Future Improvements
 
 Possible improvements:
 
@@ -144,22 +187,3 @@ Intent detection
 
 ---
 
-# docs/00-roadmap.md
-
-Actualiza:
-
-```markdown
-## Phase 02 — Google Drive Retrieval
-
-Status: Completed
-
-Tasks:
-
-[x] Create enterprise knowledge base
-[x] Configure Google Drive credentials
-[x] Upload internal documentation
-[x] Receive Slack questions
-[x] Extract user queries
-[x] Normalize queries
-[x] Generate keywords
-[x] Validate retrieval preparation
