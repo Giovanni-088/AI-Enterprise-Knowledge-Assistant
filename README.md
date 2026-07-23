@@ -173,14 +173,14 @@ The parser receives DOCX files through multipart/form-data, extracts the documen
 
 # Project Roadmap
 
-- ✅ Phase 00 — Project Initialization
-- ✅ Phase 01 — Slack Integration
-- ✅ Phase 02 — Google Drive Retrieval
-- ✅ Phase 03 — Query Processing
-- ✅ Phase 04 — Document Parsing
-- ✅ Phase 05 — AI Answer Generation
-- ✅ Phase 06 — Slack Response
-- ✅ Phase 07 — Monitoring & Future Improvements
+- [x] Phase 00 — Project Initialization
+- [x] Phase 01 — Slack Integration
+- [x] Phase 02 — Google Drive Retrieval
+- [x] Phase 03 — Query Processing
+- [x] Phase 04 — Document Parsing
+- [x] Phase 05 — AI Answer Generation
+- [x] Phase 06 — Slack Response
+- [x] Phase 07 — Monitoring & Future Improvements
 
 ---
 
